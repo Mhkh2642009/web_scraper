@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Scrapted - Main Interface</title>
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..900&display=swap" rel="stylesheet" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Tailwind Config injected from provided style guidance -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#96ccff",
+                        "outline-variant": "#404750",
+                        "surface-tint": "#96ccff",
+                        "on-surface-variant": "#c0c7d1",
+                        "surface-container": "#1c2026",
+                        "tertiary-container": "#ffa657",
+                        "on-tertiary": "#4d2700",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffb77c",
+                        "primary-container": "#79c0ff",
+                        "surface-dim": "#10141a",
+                        "surface-container-low": "#181c22",
+                        "on-surface": "#dfe2eb",
+                        "surface": "#10141a",
+                        "secondary": "#dbb8ff",
+                        "on-tertiary-container": "#723c00",
+                        "on-background": "#dfe2eb",
+                        "on-error": "#690005",
+                        "on-secondary-container": "#cda3fa",
+                        "on-primary-container": "#004e7b",
+                        "inverse-surface": "#dfe2eb",
+                        "background": "#10141a",
+                        "secondary-fixed-dim": "#dbb8ff",
+                        "on-primary-fixed": "#001d32",
+                        "error": "#ffb4ab",
+                        "surface-container-highest": "#31353c",
+                        "on-secondary-fixed-variant": "#593482",
+                        "inverse-on-surface": "#2d3137",
+                        "on-secondary-fixed": "#2b0052",
+                        "on-primary-fixed-variant": "#004a76",
+                        "tertiary": "#ffcca5",
+                        "primary-fixed": "#cee5ff",
+                        "error-container": "#93000a",
+                        "surface-container-high": "#262a31",
+                        "inverse-primary": "#00639a",
+                        "surface-variant": "#31353c",
+                        "on-tertiary-fixed": "#2e1500",
+                        "primary": "#b5d9ff",
+                        "secondary-fixed": "#efdbff",
+                        "outline": "#8a919b",
+                        "on-secondary": "#421b6a",
+                        "secondary-container": "#593482",
+                        "surface-container-lowest": "#0a0e14",
+                        "on-primary": "#003353",
+                        "tertiary-fixed": "#ffdcc2",
+                        "on-tertiary-fixed-variant": "#6d3900",
+                        "surface-bright": "#353940"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "indent": "20px",
+                        "unit": "4px",
+                        "gutter": "16px",
+                        "container-max": "1440px",
+                        "margin": "24px"
+                    },
+                    "fontFamily": {
+                        "display": ["JetBrains Mono"],
+                        "headline-md": ["JetBrains Mono"],
+                        "headline-lg": ["JetBrains Mono"],
+                        "label-caps": ["JetBrains Mono"],
+                        "body-lg": ["JetBrains Mono"],
+                        "body-md": ["JetBrains Mono"],
+                        "code-sm": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "display": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "code-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Base styles to ensure consistency with custom fonts if applied system-wide */
+        body {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Subtle glowing cursor effect for the branding */
+        .cursor-blink {
+            animation: blink 1s step-start infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* Thin scrollbar for editor feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #10141a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #31353c;
+            border-radius: 4px;
+            border: 1px solid #10141a;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #404750;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-surface text-on-surface flex h-screen overflow-hidden selection:bg-surface-variant selection:text-primary-container">
+    <!-- 
+    =======================================================================
+    SIDENAVBAR (Based on JSON: semantic match for editor view -> explorer.sh)
+    ======================================================================= 
+    -->
+    <nav
+        class="bg-surface-container-low dark:bg-surface-container-low text-primary dark:text-primary font-code-sm text-code-sm h-full w-60 border-r border-outline-variant border-r border-outline-variant bg-surface-container-low flat no shadows flex flex-col h-screen fixed left-0 top-0 z-20 pt-2 pb-6">
+        <!-- Header -->
+        <div class="px-4 py-3 mb-2">
+            <div class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase tracking-wider">Project:
+                Scrapted</div>
+            <div class="text-on-surface-variant opacity-70">branch: main*</div>
+        </div>
+        <!-- Navigation Tabs -->
+        <div class="flex flex-col flex-1 gap-1 px-2">
+            <!-- Active Tab: explorer.sh -->
+            <button
+                class="flex items-center gap-2 px-3 py-1.5 rounded-sm border-l-2 border-primary-container bg-surface-container-highest text-on-surface transition-all duration-150 cursor-pointer w-full text-left">
+                <span class="material-symbols-outlined text-[16px]">folder</span>
+                explorer.sh
+            </button>
+            <!-- Inactive Tabs -->
+            <button
+                class="flex items-center gap-2 px-3 py-1.5 rounded-sm text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 cursor-pointer w-full text-left pl-[14px]">
+                <span class="material-symbols-outlined text-[16px]">search</span>
+                search.grep
+            </button>
+            <button
+                class="flex items-center gap-2 px-3 py-1.5 rounded-sm text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 cursor-pointer w-full text-left pl-[14px]">
+                <span class="material-symbols-outlined text-[16px]">account_tree</span>
+                git.diff
+            </button>
+            <button
+                class="flex items-center gap-2 px-3 py-1.5 rounded-sm text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 cursor-pointer w-full text-left pl-[14px]">
+                <span class="material-symbols-outlined text-[16px]">extension</span>
+                extensions.pkg
+            </button>
+            <button
+                class="flex items-center gap-2 px-3 py-1.5 rounded-sm text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 cursor-pointer w-full text-left pl-[14px]">
+                <span class="material-symbols-outlined text-[16px]">terminal</span>
+                debug.log
+            </button>
+        </div>
+        <!-- Footer Tabs & CTA -->
+        <div class="px-4 mt-auto space-y-4">
+            <button
+                class="w-full text-center bg-surface-container-highest border border-outline-variant hover:border-primary-container text-primary py-1.5 rounded text-code-sm cursor-pointer transition-colors group">
+                [ <span class="group-hover:text-primary-fixed-dim transition-colors">NEW_FILE</span> ]
+            </button>
+            <div class="flex flex-col gap-2 pt-2 border-t border-outline-variant">
+                <button
+                    class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer w-full text-left">
+                    <span class="material-symbols-outlined text-[16px]">settings</span>
+                    settings
+                </button>
+                <button
+                    class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer w-full text-left">
+                    <span class="material-symbols-outlined text-[16px]">person</span>
+                    account
+                </button>
+            </div>
+        </div>
+    </nav>
+    <!-- 
+    =======================================================================
+    MAIN CANVAS AREA
+    ======================================================================= 
+    -->
+    <div class="ml-60 flex flex-col flex-1 h-screen relative pb-6 bg-surface">
+        <!-- 
+        =======================================================================
+        TOPNAVBAR (Acts as Editor Tabs based on JSON)
+        ======================================================================= 
+        -->
+        <header
+            class="bg-surface dark:bg-surface text-primary dark:text-primary font-code-sm text-code-sm w-full h-12 border-b border-outline-variant border-b border-outline-variant bg-surface flat no shadows flex items-center w-full px-gutter h-12 gap-unit flex-shrink-0 relative z-10">
+            <!-- Brand / Logo Area -->
+            <div
+                class="font-headline-md text-headline-md font-bold text-primary dark:text-primary mr-8 pr-4 border-r border-outline-variant h-full flex items-center">
+                Scrapted
+            </div>
+            <!-- Editor Tabs -->
+            <div class="flex h-full items-end gap-1 flex-1 overflow-x-auto no-scrollbar">
+                <!-- Active Tab -->
+                <button
+                    class="px-4 h-[90%] rounded-t-md bg-surface text-on-surface border-t-2 border-tertiary-container pt-1 flex items-center gap-2 border-x border-outline-variant cursor-pointer active:opacity-80 relative -mb-[1px] z-10">
+                    <span class="material-symbols-outlined text-[16px] text-tertiary-container">html</span>
+                    index.html
+                </button>
+                <!-- Inactive Tabs -->
+                <button
+                    class="px-4 h-[80%] rounded-t-md bg-surface-container text-on-surface-variant hover:bg-surface-container-highest transition-colors flex items-center gap-2 border border-outline-variant border-b-0 cursor-pointer active:opacity-80">
+                    <span class="material-symbols-outlined text-[16px] text-primary-fixed-dim">css</span>
+                    styles.css
+                </button>
+                <button
+                    class="px-4 h-[80%] rounded-t-md bg-surface-container text-on-surface-variant hover:bg-surface-container-highest transition-colors flex items-center gap-2 border border-outline-variant border-b-0 cursor-pointer active:opacity-80">
+                    <span class="material-symbols-outlined text-[16px] text-secondary">javascript</span>
+                    main.js
+                </button>
+                <button
+                    class="px-4 h-[80%] rounded-t-md bg-surface-container text-on-surface-variant hover:bg-surface-container-highest transition-colors flex items-center gap-2 border border-outline-variant border-b-0 cursor-pointer active:opacity-80">
+                    <span class="material-symbols-outlined text-[16px] text-on-surface-variant">description</span>
+                    README.md
+                </button>
+            </div>
+            <!-- Trailing Actions -->
+            <div class="flex items-center gap-4 ml-auto pl-4 border-l border-outline-variant h-full">
+                <button
+                    class="text-primary hover:text-primary-fixed-dim font-bold tracking-widest cursor-pointer active:opacity-80 transition-colors">
+                    [ RUN ]
+                </button>
+                <button
+                    class="text-on-surface-variant hover:text-on-surface cursor-pointer active:opacity-80 transition-colors">
+                    <span class="material-symbols-outlined">terminal</span>
+                </button>
+                <button
+                    class="text-on-surface-variant hover:text-on-surface cursor-pointer active:opacity-80 transition-colors">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+            </div>
+        </header>
+        <!-- 
+        =======================================================================
+        EDITOR CONTENT AREA (The Scraper UI hidden in code)
+        ======================================================================= 
+        -->
+        <main class="flex-1 overflow-y-auto p-gutter pb-32 w-full relative z-0">
+            <!-- Line numbers container (visual only) -->
+            <div
+                class="absolute left-0 top-0 bottom-0 w-12 border-r border-outline-variant bg-surface-container-lowest flex flex-col items-end pt-gutter pr-2 text-outline-variant opacity-50 select-none font-code-sm text-[11px] leading-relaxed z-[-1]">
+                <!-- Pseudo line numbers generated via CSS for simplicity, but hardcoded here for structural integrity -->
+                <div>1</div>
+                <div>2</div>
+                <div>3</div>
+                <div>4</div>
+                <div>5</div>
+                <div>6</div>
+                <div>7</div>
+                <div>8</div>
+                <div>9</div>
+                <div>10</div>
+                <div>11</div>
+                <div>12</div>
+                <div>13</div>
+                <div>14</div>
+                <div>15</div>
+                <div>16</div>
+                <div>17</div>
+                <div>18</div>
+                <div>19</div>
+                <div>20</div>
+                <div>21</div>
+                <div>22</div>
+                <div>23</div>
+                <div>24</div>
+                <div>25</div>
+                <div>26</div>
+                <div>27</div>
+                <div>28</div>
+                <div>29</div>
+                <div>30</div>
+                <div>31</div>
+                <div>32</div>
+                <div>33</div>
+                <div>34</div>
+                <div>35</div>
+                <div>36</div>
+                <div>37</div>
+                <div>38</div>
+                <div>39</div>
+                <div>40</div>
+            </div>
+            <!-- Code Structure Wrapper -->
+            <div class="ml-10 font-code-sm text-code-sm text-on-surface-variant leading-relaxed">
+                <!-- DOCTYPE & HTML Tag -->
+                <div>
+                    <span class="text-outline">
+                        <!< /span><span class="text-secondary">DOCTYPE</span> <span
+                                class="text-tertiary">html</span><span class="text-outline">></span>
+                </div>
+                <div>
+                    <span class="text-outline">
+                        << /span><span class="text-secondary">html</span> <span class="text-tertiary">lang</span>=<span
+                                class="text-primary-container">"en"</span><span class="text-outline">></span>
+                </div>
+                <!-- HEAD Tag & Branding -->
+                <div class="border-l border-outline-variant ml-indent pl-indent my-1">
+                    <div><span class="text-outline">
+                            << /span><span class="text-secondary">head</span><span class="text-outline">></span></div>
+                    <!-- Branding Block as a Comment -->
+                    <div
+                        class="border-l border-outline-variant ml-indent pl-indent text-outline italic py-3 my-1 bg-surface-container-lowest/30 rounded border-y border-r border-transparent hover:border-outline-variant transition-colors">
+                        <!-- <br/>
+<div class="font-display text-display text-primary font-bold tracking-tight not-italic my-2 flex items-center">
+                            scrapted<span class="cursor-blink opacity-70 font-light">_</span>
+</div>
+<div class="not-italic text-on-surface text-body-lg font-body-lg mb-1">
+                            Tell us what you want. We'll find where the DOM hid it.
+                        </div>
+                        -->
+                    </div>
+                    <div><span class="text-outline"></< /span><span class="text-secondary">head</span><span
+                                class="text-outline">></span></div>
+                </div>
+                <!-- BODY Tag -->
+                <div class="border-l border-outline-variant ml-indent pl-indent my-1 relative group">
+                    <!-- Active line indicator for visual hierarchy -->
+                    <div
+                        class="absolute -left-[1px] top-4 bottom-4 w-[1px] bg-outline group-hover:bg-primary-container transition-colors duration-500">
+                    </div>
+                    <div><span class="text-outline">
+                            << /span><span class="text-secondary">body</span><span class="text-outline">></span></div>
+                    <!-- MAIN Tag -->
+                    <div class="border-l border-outline-variant ml-indent pl-indent my-1">
+                        <div><span class="text-outline">
+                                << /span><span class="text-secondary">main</span><span class="text-outline">></span>
+                        </div>
+                        <!-- 
+                        =======================================================
+                        THE SCRAPE FORM (Integrated UI)
+                        ======================================================= 
+                        -->
+                        <div
+                            class="border-l border-primary-container ml-indent pl-indent my-4 py-2 relative bg-primary-container/5 rounded-r">
+                            <!-- Focus indicator -->
+                            <div class="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-primary-container"></div>
+                            <div>
+                                <span class="text-outline">
+                                    << /span><span class="text-secondary font-bold text-primary">form</span> <span
+                                            class="text-tertiary">class</span>=<span
+                                            class="text-primary-container">"scrape"</span><span
+                                            class="text-outline">></span>
+                            </div>
+                            <!-- Form Inner Elements wrapped in structural tags -->
+                            <form class="border-l border-outline-variant ml-indent pl-indent my-3 space-y-6">
+                                <!-- 1. URL Input -->
+                                <div class="flex items-center flex-wrap gap-y-2">
+                                    <span class="text-outline">
+                                        << /span><span class="text-secondary">input</span>
+                                            <span class="text-tertiary ml-2">type</span>=<span
+                                                class="text-primary-container">"url"</span>
+                                            <span class="text-tertiary ml-2">target</span>=<span
+                                                class="text-primary-container">"</span>
+                                            <input
+                                                class="bg-surface-container-lowest border-b-2 border-outline-variant text-primary-fixed-dim focus:border-primary-container focus:bg-surface focus:outline-none focus:ring-0 px-2 py-1 w-full max-w-xl mx-1 font-code-sm text-code-sm transition-all placeholder:text-outline-variant/50 shadow-inner rounded-t-sm"
+                                                placeholder="https://shop.example.com/product/42" type="url"
+                                                value="https://shop.example.com/product/42" />
+                                            <span class="text-primary-container">"</span><span
+                                                class="text-outline">/></span>
+                                </div>
+                                <!-- 2. Target Textarea -->
+                                <div class="w-full max-w-3xl">
+                                    <div class="mb-1">
+                                        <span class="text-outline">
+                                            << /span><span class="text-secondary">target</span><span
+                                                    class="text-outline">></span>
+                                    </div>
+                                    <div class="border-l border-outline-variant ml-indent pl-indent">
+                                        <textarea
+                                            class="w-full bg-surface-container-lowest border border-outline-variant rounded p-3 text-on-surface font-code-sm text-code-sm focus:border-primary-container focus:ring-1 focus:ring-primary-container focus:outline-none resize-y min-h-[80px] placeholder:text-outline-variant/50 transition-all shadow-inner leading-relaxed"
+                                            placeholder="Describe what you are looking for visually... e.g., 'The large red price text right below the main product image'">The main product price. It's usually a large bold font right under the product title. Sometimes wrapped in a discount span.</textarea>
+                                    </div>
+                                    <div class="mt-1">
+                                        <span class="text-outline"></< /span><span
+                                                class="text-secondary">target</span><span class="text-outline">></span>
+                                    </div>
+                                </div>
+                                <!-- 3. Expected Selector -->
+                                <div class="flex items-center flex-wrap gap-y-2">
+                                    <span class="text-outline">
+                                        << /span><span class="text-secondary">config</span>
+                                            <span class="text-tertiary ml-2">expected_selector</span>=<span
+                                                class="text-primary-container">"</span>
+                                            <input
+                                                class="bg-surface-container-lowest border-b-2 border-outline-variant text-tertiary-fixed-dim focus:border-tertiary-container focus:bg-surface focus:outline-none focus:ring-0 px-2 py-1 w-full max-w-sm mx-1 font-code-sm text-code-sm transition-all placeholder:text-outline-variant/50 shadow-inner rounded-t-sm"
+                                                placeholder="#product-price" type="text" value="#product-price" />
+                                            <span class="text-primary-container">"</span><span
+                                                class="text-outline">/></span>
+                                </div>
+                                <!-- Action Button -->
+                                <div class="pt-2">
+                                    <button
+                                        class="bg-surface-container hover:bg-surface-container-high border border-outline-variant hover:border-primary-container text-primary font-bold tracking-[0.15em] px-5 py-2.5 rounded transition-all flex items-center gap-2 group cursor-pointer active:scale-95 shadow-sm"
+                                        type="button">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+                                        [ SCRAPE_NOW ]
+                                    </button>
+                                </div>
+                            </form>
+                            <div>
+                                <span class="text-outline"></< /span><span
+                                        class="text-secondary font-bold text-primary">form</span><span
+                                        class="text-outline">></span>
+                            </div>
+                        </div>
+                        <!-- 
+                        =======================================================
+                        PROCESSING CONSOLE (Integrated state)
+                        ======================================================= 
+                        -->
+                        <div class="border-l border-outline-variant ml-indent pl-indent my-6">
+                            <div
+                                class="bg-surface-container-lowest border border-outline-variant rounded-md p-4 font-code-sm text-code-sm max-w-3xl shadow-inner relative overflow-hidden group">
+                                <!-- Console decorative top bar -->
+                                <div class="absolute top-0 left-0 right-0 h-1 bg-surface-variant flex">
+                                    <div class="h-full w-2/3 bg-secondary opacity-70"></div>
+                                </div>
+                                <div class="text-on-surface-variant space-y-1.5 mt-1 font-mono tracking-tight">
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-secondary mt-0.5">></span>
+                                        <span class="opacity-70">Initializing scraping engine v1.0.4... [OK]</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-secondary mt-0.5">></span>
+                                        <span class="opacity-70">Fetching https://shop.example.com/product/42... [200
+                                            OK]</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <span class="text-secondary mt-0.5">></span>
+                                        <span class="opacity-70">Parsing DOM structure (1,402 nodes found)...</span>
+                                    </div>
+                                    <div
+                                        class="flex items-start gap-2 text-primary-fixed-dim bg-primary-container/10 -mx-4 px-4 py-1 border-l-2 border-primary-container">
+                                        <span class="text-primary mt-0.5">></span>
+                                        <span>AI inspecting visual relationships against target description... <span
+                                                class="cursor-blink">_</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 
+                        =======================================================
+                        RESULTS AREA (AI Healing Visualization)
+                        ======================================================= 
+                        -->
+                        <div class="border-l border-outline-variant ml-indent pl-indent my-8">
+                            <div>
+                                <span class="text-outline">
+                                    << /span><span
+                                            class="text-secondary font-bold text-tertiary-container">result</span> <span
+                                            class="text-tertiary">status</span>=<span
+                                            class="text-primary-container">"found"</span><span
+                                            class="text-outline">></span>
+                            </div>
+                            <div class="border-l border-tertiary-container ml-indent pl-indent my-3 py-2 relative">
+                                <div class="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-tertiary-container"></div>
+                                <!-- Result Card -->
+                                <div
+                                    class="bg-surface-container border border-outline-variant rounded-lg p-5 max-w-3xl shadow-sm hover:border-tertiary-container/50 transition-colors">
+                                    <!-- Header -->
+                                    <div
+                                        class="flex flex-wrap justify-between items-start gap-4 mb-5 border-b border-outline-variant pb-4">
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="material-symbols-outlined text-tertiary-container text-[20px]">verified</span>
+                                            <h3 class="font-headline-md text-headline-md text-on-surface m-0">Target
+                                                Located & Extracted</h3>
+                                        </div>
+                                        <div
+                                            class="bg-surface-container-highest px-2.5 py-1 rounded text-label-caps text-on-surface-variant flex items-center gap-1.5 border border-outline-variant/50">
+                                            <span
+                                                class="material-symbols-outlined text-[14px] text-secondary">psychology</span>
+                                            Confidence: 98.4%
+                                        </div>
+                                    </div>
+                                    <!-- AI Healing Visualization Block -->
+                                    <div
+                                        class="bg-surface-container-lowest rounded-md border border-outline-variant p-4 mb-5 relative overflow-hidden">
+                                        <!-- Decorative background pattern for technical feel -->
+                                        <div class="absolute inset-0 opacity-[0.03]"
+                                            style="background-image: radial-gradient(#8a919b 1px, transparent 1px); background-size: 16px 16px;">
+                                        </div>
+                                        <div
+                                            class="text-outline-variant mb-3 text-label-caps uppercase tracking-wider relative z-10 flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[14px]">auto_fix_high</span>
+                                            AI Selector Healing Applied
+                                        </div>
+                                        <div class="flex flex-col gap-1 relative z-10 font-code-sm text-code-sm">
+                                            <!-- Old Selector -->
+                                            <div
+                                                class="flex items-center gap-3 p-2 rounded bg-error-container/10 border border-error/20">
+                                                <span class="text-outline w-20 text-right opacity-70">Expected:</span>
+                                                <code
+                                                    class="text-error line-through opacity-70 decoration-error/50">#product-price</code>
+                                            </div>
+                                            <!-- Transition Icon -->
+                                            <div class="flex justify-center -my-3 z-20 relative">
+                                                <div
+                                                    class="bg-surface-container-lowest rounded-full p-1 border border-outline-variant text-outline-variant shadow-sm">
+                                                    <span
+                                                        class="material-symbols-outlined text-[14px]">arrow_downward</span>
+                                                </div>
+                                            </div>
+                                            <!-- New Selector -->
+                                            <div
+                                                class="flex items-center gap-3 p-2 rounded bg-tertiary-container/10 border border-tertiary-container/30">
+                                                <span class="text-outline w-20 text-right">Actual:</span>
+                                                <code
+                                                    class="text-tertiary-fixed-dim font-bold">div[data-testid="product-price"] > span.sc-price-val</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Extracted Value -->
+                                    <div class="mb-6">
+                                        <div class="text-outline-variant mb-2 text-label-caps uppercase tracking-wider">
+                                            Extracted Value</div>
+                                        <div
+                                            class="font-headline-lg text-headline-lg text-primary-fixed-dim font-bold bg-surface-container-lowest p-4 rounded-md border border-outline-variant shadow-inner flex items-center justify-between group">
+                                            $149.99
+                                            <button
+                                                class="opacity-0 group-hover:opacity-100 transition-opacity text-outline-variant hover:text-primary cursor-pointer"
+                                                title="Copy Value">
+                                                <span class="material-symbols-outlined">content_copy</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Action Buttons -->
+                                    <div class="flex flex-wrap gap-3 pt-2">
+                                        <button
+                                            class="bg-surface-container-highest hover:bg-surface-bright text-on-surface border border-outline-variant hover:border-outline px-4 py-2 rounded transition-colors flex items-center gap-2 cursor-pointer font-bold tracking-wide text-code-sm">
+                                            <span class="material-symbols-outlined text-[16px]">code</span>
+                                            [ COPY_SELECTOR ]
+                                        </button>
+                                        <button
+                                            class="bg-tertiary-container/10 hover:bg-tertiary-container/20 text-tertiary-fixed-dim border border-tertiary-container/30 hover:border-tertiary-container px-4 py-2 rounded transition-colors flex items-center gap-2 cursor-pointer font-bold tracking-wide text-code-sm">
+                                            <span class="material-symbols-outlined text-[16px]">data_object</span>
+                                            [ COPY_VALUE ]
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-outline"></< /span><span
+                                        class="text-secondary font-bold text-tertiary-container">result</span><span
+                                        class="text-outline">></span>
+                            </div>
+                        </div>
+                        <div><span class="text-outline"></< /span><span class="text-secondary">main</span><span
+                                    class="text-outline">></span></div>
+                    </div>
+                    <div><span class="text-outline"></< /span><span class="text-secondary">body</span><span
+                                class="text-outline">></span></div>
+                </div>
+                <div>
+                    <span class="text-outline"></< /span><span class="text-secondary">html</span><span
+                            class="text-outline">></span>
+                </div>
+            </div>
+            <!-- Bottom padding for scrolling past footer -->
+            <div class="h-24 w-full"></div>
+        </main>
+    </div>
+    <!-- 
+    =======================================================================
+    FOOTER (Global Status Bar based on JSON)
+    ======================================================================= 
+    -->
+    <footer
+        class="bg-surface-container dark:bg-surface-container text-tertiary dark:text-tertiary font-code-sm text-code-sm fixed bottom-0 w-full h-6 border-t border-outline-variant border-t border-outline-variant bg-surface-container flat no shadows flex justify-between items-center px-4 w-full h-6 z-50 cursor-default">
+        <!-- Copyright / Logo text (left) -->
+        <div class="font-code-sm text-code-sm text-outline opacity-70">
+            <!-- (c) 2024 Scrapted Engine v1.0.4 -->
+        </div>
+        <!-- Links / Status (right) -->
+        <div class="flex items-center gap-6">
+            <a class="text-outline hover:text-on-surface transition-colors cursor-pointer" href="#">docs.md</a>
+            <a class="text-outline hover:text-on-surface transition-colors cursor-pointer" href="#">issues.log</a>
+            <span class="text-primary flex items-center gap-1 font-bold">
+                <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                status:200
+            </span>
+        </div>
+    </footer>
+</body>
+
+</html>
