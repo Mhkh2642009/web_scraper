@@ -59,6 +59,16 @@ Backend variables live in `backend/.env`:
 
 Vite proxies `/api` to `VITE_API_PROXY_TARGET` during local development, so `VITE_API_BASE_URL` should remain empty. Set `VITE_API_BASE_URL` only when a deployed frontend needs a separate public API origin.
 
+## Deploy to Railway
+
+Railway builds the root `Dockerfile`, compiles the React frontend, installs Scrapling's Chromium runtime, and serves the frontend and FastAPI API from one public service. The container listens on Railway's injected `PORT`; `/api/health` is used as the deployment health check.
+
+1. Push this repository to GitHub and create a Railway service from the repository.
+2. Keep the service root directory set to the repository root. Railway will detect `railway.toml` and the root `Dockerfile` automatically.
+3. Generate a public domain under **Settings → Networking** after the first successful deployment.
+
+No server-side Gemini key is required because each user connects their own key in the browser and Scrapted sends it only in the `X-Gemini-API-Key` request header. Optional scraper settings from the backend environment-variable table can be added in Railway's **Variables** tab. Do not set `VITE_API_BASE_URL` for this single-service deployment—the frontend uses the same Railway origin for `/api` requests.
+
 ## Share a local demo
 
 With the backend and frontend running, expose the frontend port with Cloudflare Quick Tunnel:
