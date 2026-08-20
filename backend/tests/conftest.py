@@ -7,7 +7,7 @@ from scrapling.parser import Selector
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(gemini_api_key="test-key", max_dom_chars=24_000)
+    return Settings(gemini_api_key="test-key", max_dom_chars=12_000)
 
 
 def page_result(html: str, status: int = 200, content_type: str = "text/html") -> FetchResult:
@@ -17,4 +17,3 @@ def page_result(html: str, status: int = 200, content_type: str = "text/html") -
         headers={"content-type": content_type},
         body=html.encode(),
     )
-

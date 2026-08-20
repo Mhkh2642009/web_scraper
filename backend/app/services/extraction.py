@@ -1,16 +1,18 @@
 import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Any
-
 from scrapling.parser import Selector
 
 from app.models.schemas import AIChoice
 
-SKIP_TAGS = {"script", "style", "noscript", "svg", "path", "meta", "link", "template", "head"}
-USEFUL_ATTRIBUTES = ("id", "class", "href", "src", "aria-label", "name", "title", "alt", "value", "content", "data-testid")
+SKIP_TAGS = {"script", "style", "noscript", "svg", "path", "g", "circle", "rect", "meta", "link", "template", "head"}
+USEFUL_ATTRIBUTES = ("id", "class", "href", "src", "aria-label", "name", "title", "alt", "value", "content", "data-testid", "style")
 VALUE_ATTRIBUTES = ("value", "content", "aria-label", "alt", "title", "href", "src")
 TOKEN_PATTERN = re.compile(r"[a-z0-9]{2,}", re.IGNORECASE)
+MONEY_PATTERN = re.compile(
+    r"(?:\$|€|£|EGP|USD|AED|SAR|JPY|CAD|AUD)\s*[\d,.]+|[\d,.]+\s*(?:ج\.?\s*م\.?|EGP|USD|AED|SAR|JPY|CAD|AUD)",
+    re.IGNORECASE,
+)
 MAX_VALUE_CHARS = 10_000
 
 
@@ -25,15 +27,28 @@ class Candidate:
     score: float
     element: Selector
 
-    def to_prompt(self) -> dict[str, Any]:
-        return {
-            "candidate_index": self.index,
-            "selector": self.selector,
-            "tag": self.tag,
-            "attributes": self.attributes,
-            "text": self.text,
-            "parent_context": self.parent_context,
-        }
+    def to_prompt_line(self) -> str:
+        """A compact DOM sketch for the LLM, not raw HTML."""
+        identity = self.attributes.get("id", "")
+        classes = " ".join(self.attributes.get("class", "").split()[:3])
+        locator = self.selector
+        details = []
+        if identity:
+            details.append(f"id={identity}")
+        if classes:
+            details.append(f"class={classes}")
+        for key in ("data-testid", "name", "aria-label", "alt", "title", "href", "src", "value", "content"):
+            value = self.attributes.get(key)
+            if value:
+                details.append(f"{key}={compact(value, 90)}")
+        summary = f"[{self.index}] {self.tag} | css:{locator}"
+        if details:
+            summary += f" | {'; '.join(details)}"
+        if self.text:
+            summary += f" | text:{compact(self.text, 220)}"
+        if self.parent_context:
+            summary += f" | in:{compact(self.parent_context, 100)}"
+        return summary
 
 
 def compact(value: str, limit: int = 500) -> str:
@@ -43,7 +58,11 @@ def compact(value: str, limit: int = 500) -> str:
 
 def element_attributes(element: Selector) -> dict[str, str]:
     attributes = getattr(element, "attrib", {}) or {}
-    return {key: compact(value, 180) for key, value in attributes.items() if key in USEFUL_ATTRIBUTES and value}
+    return {
+        key: compact(value, 180)
+        for key, value in attributes.items()
+        if (key in USEFUL_ATTRIBUTES or key.startswith("data-")) and value
+    }
 
 
 def element_text(element: Selector) -> str:
@@ -70,16 +89,46 @@ def element_html(element: Selector) -> str:
     return compact(str(element.get()), MAX_VALUE_CHARS)
 
 
+def build_source_preview(page: Selector, max_chars: int) -> str:
+    """Return a bounded, safe-to-display source view without executable page content."""
+    try:
+        html = str(page.get())
+    except Exception:
+        return ""
+    html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
+    html = re.sub(r"<(?:script|style|noscript|svg|template)\b[^>]*>.*?</(?:script|style|noscript|svg|template)>", "", html, flags=re.IGNORECASE | re.DOTALL)
+    html = re.sub(r"<(?:meta|link)\b[^>]*>", "", html, flags=re.IGNORECASE)
+    html = re.sub(r">\s*<", ">\n<", html.strip())
+
+    lines: list[str] = []
+    used = 0
+    for raw_line in html.splitlines():
+        line = re.sub(r"\s+", " ", raw_line).strip()
+        if not line:
+            continue
+        line = line[:800]
+        if used + len(line) + 1 > max_chars:
+            remaining = max_chars - used
+            if remaining > 1:
+                lines.append(f"{line[:remaining - 1]}…")
+            break
+        lines.append(line)
+        used += len(line) + 1
+    return "\n".join(lines)
+
+
 def _tokens(value: str) -> set[str]:
     return {token.lower() for token in TOKEN_PATTERN.findall(value)}
 
 
 def _score_candidate(candidate: Candidate, query: str, expected_selector: str | None) -> float:
     query_tokens = _tokens(query)
-    candidate_text = " ".join([candidate.tag, candidate.selector, candidate.text, *candidate.attributes.values()]).lower()
+    candidate_text = " ".join(
+        [candidate.tag, candidate.selector, candidate.text, candidate.parent_context, *candidate.attributes.values()]
+    ).lower()
     candidate_tokens = _tokens(candidate_text)
     overlap = len(query_tokens & candidate_tokens) * 4
-    score = overlap + min(len(candidate.text), 180) / 180
+    score = overlap + (1 if candidate.text else 0)
     if expected_selector:
         expected_tokens = _tokens(expected_selector)
         score += len(expected_tokens & candidate_tokens) * 5
@@ -88,6 +137,32 @@ def _score_candidate(candidate: Candidate, query: str, expected_selector: str | 
         score += 1.5
     if candidate.tag in {"h1", "h2", "h3", "p", "span", "a", "button", "input", "time"}:
         score += 0.5
+    price_intent = bool(query_tokens & {"price", "cost", "amount", "sale", "deal", "currency", "fee"})
+    if price_intent:
+        if MONEY_PATTERN.search(candidate.text):
+            score += 16
+        if MONEY_PATTERN.fullmatch(candidate.text.strip()):
+            # A single currency value is far more likely to be the displayed price
+            # than a container that merely discusses pricing, shipping, or reviews.
+            score += 18
+        if re.search(r"price|cost|amount|deal", candidate_text):
+            score += 6
+        if re.search(r"coreprice|apex|pricetopay|price_to_pay", candidate_text):
+            score += 9
+        if re.search(r"list price|a-text-price|was price|msrp", candidate_text):
+            score -= 12
+        if candidate.tag in {"span", "strong", "b", "ins"}:
+            score += 1
+        if not (query_tokens & {"review", "reviews", "feedback", "rating"}) and re.search(
+            r"feedback|review|popover|recommendation", candidate.selector.lower()
+        ):
+            score -= 14
+        if not (query_tokens & {"shipping", "delivery", "import", "fee"}) and re.search(
+            r"shipping|delivery|import charges|fee details", candidate.text.lower()
+        ):
+            score -= 12
+    if len(candidate.text) > 240:
+        score -= min(8, (len(candidate.text) - 240) / 80)
     return score
 
 
@@ -96,7 +171,13 @@ def _parent_context(element: Selector) -> str:
         parent = getattr(element, "parent", None)
         if parent is None:
             return ""
-        return compact(f"{parent.tag} {element_text(parent)}", 280)
+        attributes = getattr(parent, "attrib", {}) or {}
+        identity = " ".join(
+            compact(str(attributes.get(key, "")), 80)
+            for key in ("id", "class", "data-testid")
+            if attributes.get(key)
+        )
+        return compact(f"{parent.tag} {identity} {element_text(parent)}", 280)
     except Exception:
         return ""
 
@@ -139,17 +220,18 @@ def generate_candidates(page: Selector, query: str, expected_selector: str | Non
     return ranked
 
 
-def build_prompt_candidates(candidates: list[Candidate], max_chars: int) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
+def build_prompt_candidates(candidates: list[Candidate], max_chars: int) -> str:
+    """Create a bounded, line-oriented DOM sketch without raw page HTML."""
+    lines: list[str] = []
     used = 0
     for candidate in candidates:
-        payload = candidate.to_prompt()
-        serialized = str(payload)
-        if used + len(serialized) > max_chars:
+        line = candidate.to_prompt_line()
+        line_size = len(line) + 1
+        if used + line_size > max_chars:
             break
-        result.append(payload)
-        used += len(serialized)
-    return result
+        lines.append(line)
+        used += line_size
+    return "\n".join(lines)
 
 
 def select_verified_element(page: Selector, candidates: list[Candidate], choice: AIChoice) -> Selector | None:
@@ -172,4 +254,3 @@ def select_verified_element(page: Selector, candidates: list[Candidate], choice:
             except Exception:
                 pass
     return candidate.element
-

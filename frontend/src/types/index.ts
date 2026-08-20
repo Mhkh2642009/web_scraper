@@ -14,6 +14,8 @@ export type ScrapeSuccess = {
   method: 'direct_selector' | 'ai_recovery' | 'ai_discovery'
   explanation: string
   trace: TraceEntry[]
+  source_preview?: string
+  compressed_dom?: string
 }
 
 export type ScrapeFailure = {
@@ -21,6 +23,8 @@ export type ScrapeFailure = {
   code: string
   error: string
   trace: TraceEntry[]
+  source_preview?: string
+  compressed_dom?: string
 }
 
 export type ScrapeResponse = ScrapeSuccess | ScrapeFailure
@@ -30,4 +34,3 @@ export type ScrapeRequest = {
   query: string
   expected_selector?: string
 }
-

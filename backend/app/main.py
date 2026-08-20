@@ -17,25 +17,27 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
+        allow_origin_regex=settings.cors_origin_regex,
         allow_credentials=False,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "X-Gemini-API-Key"],
     )
-    app.state.scraping_service = ScrapingService(settings, GeminiAIService(settings))
+    ai_service = GeminiAIService(settings)
+    app.state.gemini_ai_service = ai_service
+    app.state.scraping_service = ScrapingService(settings, ai_service)
 
     @app.exception_handler(AppError)
     async def app_error_handler(_: Request, error: AppError) -> JSONResponse:
         failure = ScrapeFailure(code=error.code, error=error.message)
-        return JSONResponse(status_code=error.status_code, content=failure.model_dump())
+        return JSONResponse(status_code=error.status_code, content=failure.model_dump(exclude={"source_preview", "compressed_dom"}))
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(_: Request, __: RequestValidationError) -> JSONResponse:
         failure = ScrapeFailure(code="INVALID_REQUEST", error="Check the URL, query, and selector fields.")
-        return JSONResponse(status_code=422, content=failure.model_dump())
+        return JSONResponse(status_code=422, content=failure.model_dump(exclude={"source_preview", "compressed_dom"}))
 
     app.include_router(router)
     return app
 
 
 app = create_app()
-

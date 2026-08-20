@@ -57,6 +57,8 @@ class ScrapeSuccess(BaseModel):
     method: Method
     explanation: str
     trace: list[TraceEntry]
+    source_preview: str = ""
+    compressed_dom: str = ""
 
 
 class ScrapeFailure(BaseModel):
@@ -64,6 +66,8 @@ class ScrapeFailure(BaseModel):
     code: str
     error: str
     trace: list[TraceEntry] = Field(default_factory=list)
+    source_preview: str = ""
+    compressed_dom: str = ""
 
 
 class AIChoice(BaseModel):
@@ -74,4 +78,3 @@ class AIChoice(BaseModel):
     value_source: str | None = Field(default=None, max_length=32)
     confidence: float = Field(ge=0, le=1)
     reason: str = Field(max_length=500)
-

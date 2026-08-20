@@ -9,7 +9,13 @@ from app.models.schemas import AIChoice
 
 
 class AIService(Protocol):
-    async def locate(self, query: str, expected_selector: str | None, candidates: list[dict]) -> AIChoice: ...
+    async def locate(
+        self,
+        query: str,
+        expected_selector: str | None,
+        candidates: str,
+        api_key: str | None = None,
+    ) -> AIChoice: ...
 
 
 class GeminiAIService:
@@ -17,11 +23,37 @@ class GeminiAIService:
         self.settings = settings
         self.client = client
 
-    async def locate(self, query: str, expected_selector: str | None, candidates: list[dict]) -> AIChoice:
-        if not self.settings.gemini_api_key:
+    async def validate_key(self, api_key: str) -> None:
+        url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1"
+        try:
+            if self.client:
+                response = await self.client.get(url, headers={"x-goog-api-key": api_key})
+            else:
+                async with httpx.AsyncClient(timeout=10) as client:
+                    response = await client.get(url, headers={"x-goog-api-key": api_key})
+        except httpx.TimeoutException as error:
+            raise AppError("AI_UNAVAILABLE", "Gemini took too long to verify the key. Try again shortly.", 503) from error
+        except httpx.HTTPError as error:
+            raise AppError("AI_UNAVAILABLE", "Gemini could not verify the key. Try again shortly.", 503) from error
+        self._raise_for_key_response(response)
+        if response.status_code == 429:
+            raise AppError("AI_UNAVAILABLE", "Gemini is busy and could not verify the key. Try again shortly.", 503)
+        if response.is_error:
+            raise AppError("AI_UNAVAILABLE", "Gemini could not verify the key. Try again shortly.", 503)
+
+    async def locate(
+        self,
+        query: str,
+        expected_selector: str | None,
+        candidates: str,
+        api_key: str | None = None,
+    ) -> AIChoice:
+        key = api_key or self.settings.gemini_api_key
+        if not key:
             raise AppError("AI_UNAVAILABLE", "AI recovery is not configured on this server.", 503)
         prompt = (
             "Choose the one DOM candidate that best satisfies the user request. "
+            "The candidates are a compact DOM sketch, not raw HTML. "
             "Only use a candidate_index from the supplied list. Do not invent selectors, values, or code. "
             "If no candidate is defensible, set found to false.\n\n"
             f"User request: {query}\n"
@@ -39,14 +71,15 @@ class GeminiAIService:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.settings.gemini_model}:generateContent"
         try:
             if self.client:
-                response = await self.client.post(url, json=payload, headers={"x-goog-api-key": self.settings.gemini_api_key})
+                response = await self.client.post(url, json=payload, headers={"x-goog-api-key": key})
             else:
                 async with httpx.AsyncClient(timeout=20) as client:
-                    response = await client.post(url, json=payload, headers={"x-goog-api-key": self.settings.gemini_api_key})
+                    response = await client.post(url, json=payload, headers={"x-goog-api-key": key})
         except httpx.TimeoutException as error:
             raise AppError("AI_UNAVAILABLE", "The AI service timed out. Try again shortly.", 503) from error
         except httpx.HTTPError as error:
             raise AppError("AI_UNAVAILABLE", "The AI service is unavailable. Try again shortly.", 503) from error
+        self._raise_for_key_response(response)
         if response.status_code == 429:
             raise AppError("AI_UNAVAILABLE", "The AI service is busy. Try again shortly.", 503)
         if response.is_error:
@@ -58,3 +91,11 @@ class GeminiAIService:
         except (KeyError, IndexError, TypeError, ValueError, ValidationError) as error:
             raise AppError("AI_INVALID_RESPONSE", "The AI returned an unusable answer.", 502) from error
 
+    @staticmethod
+    def _raise_for_key_response(response: httpx.Response) -> None:
+        if response.status_code in {400, 401, 403}:
+            raise AppError(
+                "INVALID_API_KEY",
+                "Gemini rejected this API key. Create or copy a valid key from Google AI Studio.",
+                401,
+            )
